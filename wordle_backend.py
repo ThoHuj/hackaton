@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import random
+from ollama import chat, ChatResponse
 
 # --- Backend setup ---
 words_database = pd.read_csv("word_data.csv")
@@ -112,11 +113,26 @@ else:
                         st.session_state.game_over = True
 
     if st.session_state.game_over:
+        # Show definition using Ollama
+        with st.spinner("Fetching word meaning..."):
+            try:
+                response: ChatResponse = chat(model='gemma3', messages=[
+                    {
+                        'role': 'user',
+                        'content': f"Explain the meaning of the English word '{st.session_state.correct_word}' in one short paragraph.",
+                    },
+                ])
+                definition = response.message.content
+                st.info(f"📘 **Meaning of {st.session_state.correct_word}:**\n\n{definition}")
+            except Exception as e:
+                st.warning(f"Couldn't fetch word meaning: {e}")
+
         if st.button("Play Again 💫"):
             st.session_state.correct_word = pick_random_word()
             st.session_state.attempts = []
             st.session_state.game_over = False
             st.session_state.game_started = True
             st.rerun()
+
 
 st.subheader(st.session_state.correct_word)
